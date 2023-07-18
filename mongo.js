@@ -1,5 +1,6 @@
+require('dotenv').config()
 const mongoose = require("mongoose")
-mongoose.connect("mongodb://127.0.0.1:27017/")
+mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
         console.log("mongodb connected");
     })
@@ -7,7 +8,6 @@ mongoose.connect("mongodb://127.0.0.1:27017/")
         contacts = false
         console.log('failed');
     })
-
 
 const newSchemaAttr = new mongoose.Schema({
     id: {

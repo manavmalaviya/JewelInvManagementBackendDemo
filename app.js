@@ -1,5 +1,3 @@
-
-
 const express = require("express");
 const cors = require("cors");
 const { Attributes, allowedListsMetal, allowedListStone, userCredential, mnfOrder, InvOrder, stoneOrder, stock } = require("./mongo");
@@ -11,6 +9,118 @@ const app = express();
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cors())
+
+const admin = require('firebase-admin');
+
+const cron = require('node-cron');
+const serviceAccount = require('./firebase/jewelrystockmanagement-firebase-adminsdk-rijrf-4cb9d84614.json');
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: 'https://console.firebase.google.com/project/jewelrystockmanagement/firestore/data/~2F',
+});
+
+const db = admin.firestore();
+
+cron.schedule('0 0 * * 0', async () => {
+    try {
+        // Extract data from MongoDB and push to Firebase
+        await extractAndPushToFirebase();
+        console.log('Data extracted and pushed to Firebase successfully.');
+    } catch (error) {
+        console.error('Error while extracting data and pushing to Firebase:', error);
+    }
+});
+
+// async function triggerTransferNow() {
+//     try {
+//         await extractAndPushToFirebase();
+//         console.log('Data extracted and pushed to Firebase successfully (manually triggered).');
+//     } catch (error) {
+//         console.error('Error while extracting data and pushing to Firebase:', error);
+//     }
+// }
+
+
+async function extractAndPushToFirebase() {
+    try {
+        // Extract data from MongoDB collections
+        const attributes = await Attributes.find({}).lean();
+        const MnfOrder = await mnfOrder.find({}).lean();
+        const AllowedListsMetal = await allowedListsMetal.find({}).lean();
+        const AllowedListStone = await allowedListStone.find({}).lean();
+        const UserCredential = await userCredential.find({}).lean();
+        const invOrder = await InvOrder.find({}).lean();
+        const StoneOrders = await stoneOrder.find({}).lean();
+        const Stock = await stock.find({}).lean();
+        // Add more collections as needed
+
+        // Push data to Firebase collections
+        await pushToFirebaseCollection('attributes', attributes);
+        await pushToFirebaseCollection('mnfOrder', MnfOrder);
+        await pushToFirebaseCollection('stoneOrders', StoneOrders);
+        await pushToFirebaseCollection('allowedListsMetal', AllowedListsMetal);
+        await pushToFirebaseCollection('allowedListStone', AllowedListStone);
+        await pushToFirebaseCollection('userCredential', UserCredential);
+        await pushToFirebaseCollection('InvOrder', invOrder);
+        await pushToFirebaseCollection('stock', Stock);
+        // Add more collections as needed
+    } catch (error) {
+        throw error;
+    }
+}
+
+async function pushToFirebaseCollection(collectionName, data) {
+    try {
+        // Get the Firebase collection reference
+        const collectionRef = db.collection(collectionName);
+
+        // Delete all existing documents in the Firebase collection
+        const existingDocs = await collectionRef.get();
+        existingDocs.forEach(doc => doc.ref.delete());
+
+        // Push the data to the Firebase collection
+        for (const item of data) {
+            // Remove the "_id" field from the item before pushing it to Firestore
+            const cleanedItem = removeMongoDBIds(item);
+            await collectionRef.add(cleanedItem);
+        }
+    } catch (error) {
+        throw error;
+    }
+}
+
+function removeMongoDBIds(obj) {
+    if (!obj || typeof obj !== 'object') {
+        return obj;
+    }
+
+    // If the object is an array, recursively clean each element
+    if (Array.isArray(obj)) {
+        return obj.map(item => removeMongoDBIds(item));
+    }
+
+    // Create a new object to store cleaned properties
+    const cleanedObj = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+        // Skip "_id" fields or any other field starting with "_"
+        if (key === '_id' || key.startsWith('_')) {
+            continue;
+        }
+
+        // If the value is an object, recursively clean it
+        if (typeof value === 'object') {
+            cleanedObj[key] = removeMongoDBIds(value);
+        } else {
+            // Otherwise, add the property as is
+            cleanedObj[key] = value;
+        }
+    }
+
+    return cleanedObj;
+}
+
 
 app.get("/", async (req, res) => {
 
@@ -290,7 +400,7 @@ app.post('/signup', async (req, res) => {
     }
     else {
         if (isAdmin) {
-            const updatedAdmin  = await {
+            const updatedAdmin = await {
                 ...req.body.params,
                 isAdmin: false
             };
@@ -376,8 +486,8 @@ app.delete("/invoice", async (req, res) => {
     }
 })
 
-app.listen(4000, "192.168.1.5", () => {
+app.listen(4000, "192.168.121.41", () => {
     console.log("port connected");
 })
 
-
+module.export= app
