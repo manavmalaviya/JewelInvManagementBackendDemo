@@ -486,8 +486,8 @@ app.delete("/invoice", async (req, res) => {
     }
 })
 
-app.listen(4000, "192.168.121.41", () => {
-    console.log("port connected");
-})
+// app.listen(4000, "192.168.121.41", () => {
+//     console.log("port connected");
+// })
 
 module.exports = app
