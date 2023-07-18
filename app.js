@@ -490,4 +490,4 @@ app.listen(4000, "192.168.121.41", () => {
     console.log("port connected");
 })
 
-module.export= app
+module.exports = app
