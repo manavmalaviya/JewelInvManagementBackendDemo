@@ -452,7 +452,7 @@ app.post('/login', async (req, res) => {
         }
     }
     else {
-        res.json('userNotFound')
+        res.json('User Not Found')
     }
 })
 
