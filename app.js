@@ -13,7 +13,7 @@ app.use(cors())
 const admin = require('firebase-admin');
 
 const cron = require('node-cron');
-const serviceAccount = require('./firebase/jewelrymanufacturing-d92d8-firebase-adminsdk-tk5pv-580cd5d9d1.json');
+const serviceAccount = require('./firebase/jewelrystockmanagement-firebase-adminsdk-rijrf-4cb9d84614.json');
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
